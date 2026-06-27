@@ -1,0 +1,26 @@
+spring:
+  # mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/lu-ai-code
+    username: root
+    password: admin
+  application:
+    name: lu-ai-code
+server:
+  port: 8223
+  servlet:
+    context-path: /api
+
+# springdoc-openapi
+springdoc:
+  group-configs:
+    - group: 'default'
+      packages-to-scan: com.lu.luaicode.controller
+# knife4j
+knife4j:
+  enable: false
+  setting:
+    language: zh_cn
+
+
