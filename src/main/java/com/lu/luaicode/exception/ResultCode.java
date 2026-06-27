@@ -58,17 +58,28 @@ public enum ResultCode implements IErrorCode {
     /**
      * 参数类型错误
      */
-    PARAM_TYPE_ERROR(40101, "参数类型错误"),
+    PARAM_ERROR(40101, "参数类型错误"),
+    /**
+     * 参数类型错误
+     */
+    PARAM_TYPE_ERROR(40102, "参数类型错误"),
     /**
      * 参数格式错误
      */
-    PARAM_FORMAT_ERROR(40102, "参数格式错误"),
+    PARAM_FORMAT_ERROR(40103, "参数格式错误"),
     /**
      * 参数值不合法
      */
-    PARAM_VALUE_INVALID(40103, "参数值不合法"),
+    PARAM_VALUE_INVALID(40104, "参数值不合法"),
 
     // ==================== 用户权限错误（42xx） ====================
+    /**
+     * 没有权限
+     */
+    NO_AUTH_ERROR(40900, "没有权限"),
+
+
+    // ==================== 业务错误（43xx - 49xx） ====================
     /**
      * 用户不存在
      */

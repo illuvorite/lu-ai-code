@@ -1,4 +1,4 @@
-package com.lu.luaicode.genresult.domain.entity;
+package com.lu.luaicode.domain.entity;
 
 import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Id;
@@ -129,6 +129,7 @@ public class User implements Serializable {
     /**
      * 邮箱
      */
-    private String email;
+    @Column("userEmail")
+    private String userEmail;
 
 }

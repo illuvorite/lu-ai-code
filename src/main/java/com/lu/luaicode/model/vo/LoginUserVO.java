@@ -1,4 +1,4 @@
-package com.lu.luaicode.domain.vo;
+package com.lu.luaicode.model.vo;
 
 import lombok.Data;
 

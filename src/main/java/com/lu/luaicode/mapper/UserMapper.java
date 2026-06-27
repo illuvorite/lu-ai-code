@@ -1,7 +1,7 @@
-package com.lu.luaicode.genresult.mapper;
+package com.lu.luaicode.mapper;
 
 import com.mybatisflex.core.BaseMapper;
-import com.lu.luaicode.genresult.domain.entity.User;
+import com.lu.luaicode.domain.entity.User;
 
 /**
  * 用户 映射层。
