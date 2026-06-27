@@ -90,7 +90,7 @@ const filterMenus = (menus = [] as MenuProps['items']) => {
     const menuKey = menu?.key as string
     if (menuKey?.startsWith('/admin')) {
       const loginUser = loginUserStore.loginUser
-      if (!loginUser || loginUser.userRole !== 'admin') {
+      if (!loginUser || (loginUser.userRole !== 'admin' && loginUser.userRole !== 'SuperAdmin')) {
         return false
       }
     }
