@@ -50,7 +50,7 @@
 </template>
 <script lang="ts" setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { deleteUser, listUserVoByPage } from '@/api/userController.ts'
+import { deleteUser, listUserPage } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 
@@ -105,7 +105,7 @@ const searchParams = reactive<API.UserQueryRequest>({
 
 // 获取数据
 const fetchData = async () => {
-  const res = await listUserVoByPage({
+  const res = await listUserPage({
     ...searchParams,
   })
   if (res.data.data) {
@@ -142,7 +142,7 @@ const doSearch = () => {
 }
 
 // 删除数据
-const doDelete = async (id: string) => {
+const doDelete = async (id: number | undefined) => {
   if (!id) {
     return
   }
