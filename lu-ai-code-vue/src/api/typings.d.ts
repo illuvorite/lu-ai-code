@@ -71,7 +71,7 @@ declare namespace API {
 
   type chatToGenCodeParams = {
     appId: number
-    prompt: string
+    message: string
   }
 
   type DeleteRequest = {

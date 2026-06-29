@@ -68,7 +68,7 @@ export async function adminUpdateApp(
   })
 }
 
-/** 代码生成 GET /app/chat/gen/code */
+/** 应用聊天生成代码（流式 SSE） GET /app/chat/gen/code */
 export async function chatToGenCode(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.chatToGenCodeParams,
@@ -95,7 +95,7 @@ export async function deleteMyApp(body: API.DeleteRequest, options?: { [key: str
   })
 }
 
-/** 此处后端没有提供注释 POST /app/deploy */
+/** 应用部署 POST /app/deploy */
 export async function deployApp(body: API.AppDeployRequest, options?: { [key: string]: any }) {
   return request<API.ResultString>('/app/deploy', {
     method: 'POST',
