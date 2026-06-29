@@ -307,6 +307,10 @@ const fetchAppInfo = async () => {
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
 
+      // 如果有已有消息且有代码生成类型，恢复预览
+      if (appInfo.value.codeGenType && messages.value.length >= 2) {
+        updatePreview()
+      }
       // 检查是否需要自动发送初始提示词
       if (
           appInfo.value.initPrompt &&
