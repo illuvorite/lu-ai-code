@@ -3,7 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
-import { addApp, listMyAppVoByPage, listGoodAppVoByPage } from '@/api/appController'
+import { addApp, listMyApps, listFeaturedApps } from '@/api/appController'
 import { getDeployUrl } from '@/config/env'
 import AppCard from '@/components/AppCard.vue'
 
@@ -79,7 +79,7 @@ const loadMyApps = async () => {
   }
 
   try {
-    const res = await listMyAppVoByPage({
+    const res = await listMyApps({
       pageNum: myAppsPage.current,
       pageSize: myAppsPage.pageSize,
       sortField: 'createTime',
@@ -98,7 +98,7 @@ const loadMyApps = async () => {
 // 加载精选应用
 const loadFeaturedApps = async () => {
   try {
-    const res = await listGoodAppVoByPage({
+    const res = await listFeaturedApps({
       pageNum: featuredAppsPage.current,
       pageSize: featuredAppsPage.pageSize,
       sortField: 'createTime',
