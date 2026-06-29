@@ -11,7 +11,7 @@ import com.lu.luaicode.model.enums.UserRoleEnum;
 import com.lu.luaicode.model.vo.UserVO;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
-import com.lu.luaicode.domain.entity.User;
+import com.lu.luaicode.model.dto.entity.User;
 import com.lu.luaicode.mapper.UserMapper;
 import com.lu.luaicode.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -77,16 +77,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
      * @return 登录用户信息对象
      */
     @Override
-    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+    public LoginUserVO userLogin(String userAccount, String userEmail, String userPassword, HttpServletRequest request) {
         // 1. 校验
-        ThrowUtils.throwIf(StrUtil.hasBlank(userAccount, userPassword), PARAM_ERROR,"参数为空");
-        ThrowUtils.throwIf(userAccount.length() < 4, PARAM_ERROR,"账号错误");
+        ThrowUtils.throwIf(StrUtil.hasBlank(userPassword), PARAM_ERROR,"密码不能为空");
+        ThrowUtils.throwIf(StrUtil.hasBlank(userAccount) && StrUtil.hasBlank(userEmail), PARAM_ERROR,"账号或邮箱不能为空");
         ThrowUtils.throwIf(userPassword.length() < 8, PARAM_ERROR,"密码错误");
         // 2. 加密
         String encryptPassword = getEncryptPassword(userPassword);
-        // 查询用户是否存在
+        // 查询用户是否存在（支持账号或邮箱登录）
         QueryWrapper queryWrapper = new QueryWrapper();
-        queryWrapper.eq("userAccount", userAccount);
+        if (StrUtil.isNotBlank(userAccount)) {
+            queryWrapper.eq("userAccount", userAccount);
+        } else {
+            queryWrapper.eq("userEmail", userEmail);
+        }
         queryWrapper.eq("userPassword", encryptPassword);
         User user = this.mapper.selectOneByQuery(queryWrapper);
         // 用户不存在

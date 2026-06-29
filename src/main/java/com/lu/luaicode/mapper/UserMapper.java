@@ -1,7 +1,7 @@
 package com.lu.luaicode.mapper;
 
 import com.mybatisflex.core.BaseMapper;
-import com.lu.luaicode.domain.entity.User;
+import com.lu.luaicode.model.dto.entity.User;
 
 /**
  * 用户 映射层。

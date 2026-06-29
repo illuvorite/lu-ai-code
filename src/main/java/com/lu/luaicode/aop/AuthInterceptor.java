@@ -1,7 +1,7 @@
 package com.lu.luaicode.aop;
 
 import com.lu.luaicode.annotation.AuthCheck;
-import com.lu.luaicode.domain.entity.User;
+import com.lu.luaicode.model.dto.entity.User;
 import com.lu.luaicode.exception.BusinessException;
 import com.lu.luaicode.exception.ResultCode;
 import com.lu.luaicode.model.enums.UserRoleEnum;

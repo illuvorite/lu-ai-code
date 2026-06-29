@@ -1,4 +1,4 @@
-package com.lu.luaicode.domain.entity;
+package com.lu.luaicode.model.dto.entity;
 
 import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Id;

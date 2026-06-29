@@ -11,7 +11,6 @@ import com.lu.luaicode.exception.ResultCode;
 import com.lu.luaicode.exception.ThrowUtils;
 import com.lu.luaicode.model.vo.UserVO;
 import com.mybatisflex.core.paginate.Page;
-import com.mybatisflex.core.query.QueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -20,7 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import com.lu.luaicode.domain.entity.User;
+import com.lu.luaicode.model.dto.entity.User;
 import com.lu.luaicode.service.UserService;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
@@ -45,7 +44,7 @@ public class UserController {
     @Operation(summary = "登录")
     public Result<LoginUserVO> login(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(userLoginRequest == null, PARAM_ERROR);
-        LoginUserVO loginUserVO = userService.userLogin(userLoginRequest.getUserAccount(), userLoginRequest.getUserPassword(), request);
+        LoginUserVO loginUserVO = userService.userLogin(userLoginRequest.getUserAccount(), userLoginRequest.getUserEmail(), userLoginRequest.getUserPassword(), request);
         return Result.success(loginUserVO);
     }
 
