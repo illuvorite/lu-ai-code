@@ -4,12 +4,14 @@ import com.lu.luaicode.model.dto.app.AppAddRequest;
 import com.lu.luaicode.model.dto.app.AppAdminUpdateRequest;
 import com.lu.luaicode.model.dto.app.AppUpdateRequest;
 import com.lu.luaicode.model.dto.app.AppQueryRequest;
+import com.lu.luaicode.model.dto.entity.User;
 import com.lu.luaicode.model.vo.AppVO;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.lu.luaicode.model.dto.entity.App;
 import jakarta.servlet.http.HttpServletRequest;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -19,6 +21,10 @@ import java.util.List;
  * @author illusory
  */
 public interface AppService extends IService<App> {
+
+    Flux<String> chatToGenCode(Long appId, String message, User loginUser);
+
+    String deployApp(Long appId, User loginUser);
 
     /**
      * 创建应用

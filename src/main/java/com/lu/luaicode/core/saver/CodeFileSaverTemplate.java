@@ -4,6 +4,7 @@ package com.lu.luaicode.core.saver;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import com.lu.luaicode.constant.AppConstant;
 import com.lu.luaicode.exception.ResultCode;
 import com.lu.luaicode.exception.ThrowUtils;
 import com.lu.luaicode.model.enums.CodeGenTypeEnum;
@@ -20,7 +21,9 @@ import java.nio.charset.StandardCharsets;
 public abstract class CodeFileSaverTemplate<T> {
 
     // 文件保存根目录，使用系统当前工作目录下的 tmp/code_output 目录
-    private static final String FILE_SAVE_ROOT_DIR = System.getProperty("user.dir") + "/tmp/code_output";
+    // 文件保存根目录
+    protected static final String FILE_SAVE_ROOT_DIR = AppConstant.CODE_OUTPUT_ROOT_DIR;
+
 
     // 这是一个抽象类，可以作为保存文件操作的模板
     // 具体的保存逻辑需要由子类实现
@@ -30,11 +33,11 @@ public abstract class CodeFileSaverTemplate<T> {
      * @param result 需要保存的结果对象
      * @return 保存结果的文件目录对象
      */
-    public final File saveCode(T result) {
+    public final File saveCode(T result,Long appId) {
         //验证输入参数的有效性
         validateInput(result);
         //构建唯一目录
-        String baseDirPath = buildUniqueDir();
+        String baseDirPath = buildUniqueDir(appId);
         //保存文件
         saveFiles(result, baseDirPath);
         // 调用抽象方法，由子类实现具体的保存逻辑
@@ -61,7 +64,7 @@ public abstract class CodeFileSaverTemplate<T> {
  *
  * @return 返回创建好的目录路径字符串
  */
-    protected   String buildUniqueDir() {
+    protected   String buildUniqueDir(Long appId) {
         // 获取当前代码类型的值
         String codeType=getCodeType().getValue();
         // 使用业务类型和雪花算法生成的ID拼接成唯一的目录名称

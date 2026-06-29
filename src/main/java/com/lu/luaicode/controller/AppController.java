@@ -1,14 +1,15 @@
 package com.lu.luaicode.controller;
 
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.lu.luaicode.annotation.AuthCheck;
 import com.lu.luaicode.common.DeleteRequest;
 import com.lu.luaicode.common.Result;
 import com.lu.luaicode.constant.UserConstant;
-import com.lu.luaicode.model.dto.app.AppAddRequest;
-import com.lu.luaicode.model.dto.app.AppAdminUpdateRequest;
-import com.lu.luaicode.model.dto.app.AppUpdateRequest;
-import com.lu.luaicode.model.dto.app.AppQueryRequest;
+import com.lu.luaicode.model.dto.app.*;
+import com.lu.luaicode.model.dto.entity.User;
 import com.lu.luaicode.model.vo.AppVO;
+import com.lu.luaicode.service.UserService;
 import com.mybatisflex.core.paginate.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,7 +18,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import com.lu.luaicode.model.dto.entity.App;
 import com.lu.luaicode.service.AppService;
 import com.lu.luaicode.exception.ThrowUtils;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 import static com.lu.luaicode.exception.ResultCode.NOT_FOUND;
 import static com.lu.luaicode.exception.ResultCode.PARAM_ERROR;
@@ -34,6 +41,74 @@ public class AppController {
 
     @Resource
     private AppService appService;
+
+    @Resource
+    private UserService userService;
+
+    /**
+     * 应用聊天生成代码（流式 SSE）
+     *
+     * @param appId   应用 ID
+     * @param message 用户消息
+     * @param request 请求对象
+     * @return 生成结果流
+     */
+    @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "应用聊天生成代码（流式 SSE）")
+    public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
+                                                       @RequestParam String message,
+                                                       HttpServletRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, PARAM_ERROR, "应用ID无效");
+        ThrowUtils.throwIf(StrUtil.isBlank(message), PARAM_ERROR, "用户消息不能为空");
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        // 调用服务生成代码（流式）
+        Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
+        // 转换为 ServerSentEvent 格式
+        return contentFlux
+                .map(chunk -> {
+                    // 将内容包装成JSON对象
+                    Map<String, String> wrapper = Map.of("d", chunk);
+                    String jsonData = JSONUtil.toJsonStr(wrapper);
+                    return ServerSentEvent.<String>builder()
+                            .data(jsonData)
+                            .build();
+                })
+                .concatWith(Mono.just(
+                        // 发送结束事件
+                        ServerSentEvent.<String>builder()
+                                .event("done")
+                                .data("")
+                                .build()
+                ));
+    }
+
+
+
+    /**
+     * 应用部署
+     *
+     * @param appDeployRequest 部署请求
+     * @param request          请求
+     * @return 部署 URL
+     */
+    @PostMapping("/deploy")
+    @Operation(summary = "应用部署")
+    public Result<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(appDeployRequest == null, PARAM_ERROR);
+        Long appId = appDeployRequest.getAppId();
+        ThrowUtils.throwIf(appId == null || appId <= 0, PARAM_ERROR, "应用 ID 不能为空");
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        // 调用服务部署应用
+        String deployUrl = appService.deployApp(appId, loginUser);
+        return Result.success(deployUrl);
+    }
+
+
+
+
 
     // ==================== 用户端接口 ====================
 

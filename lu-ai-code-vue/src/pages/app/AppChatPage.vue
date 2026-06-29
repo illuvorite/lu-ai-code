@@ -307,15 +307,16 @@ const fetchAppInfo = async () => {
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
 
-      // 如果有已有消息且有代码生成类型，恢复预览
-      if (appInfo.value.codeGenType && messages.value.length >= 2) {
+      // 如果有代码生成类型，恢复预览（不依赖消息数量）
+      if (appInfo.value.codeGenType) {
         updatePreview()
       }
-      // 检查是否需要自动发送初始提示词
+      // 检查是否需要自动发送初始提示词（view 模式不自动发送）
       if (
           appInfo.value.initPrompt &&
           isOwner.value &&
-          messages.value.length === 0
+          messages.value.length === 0 &&
+          route.query.view !== '1'
       ) {
         await sendInitialMessage(appInfo.value.initPrompt)
       }

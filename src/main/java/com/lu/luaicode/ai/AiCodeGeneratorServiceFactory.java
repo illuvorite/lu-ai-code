@@ -21,24 +21,13 @@ public class AiCodeGeneratorServiceFactory {
     private StreamingChatModel streamingChatModel;  // 注入 StreamingChatModel 类型的依赖，用于与 AI 模型进行交互
 
     /**
-     * 创建并配置 AiCodeGeneratorService 的 Bean。
-     * 使用 @Bean 注解将该方法返回的对象注册为 Spring 容器中的 Bean。
-     *
-     * @return 返回一个 AiCodeGeneratorService 实例，该实例使用注入的 ChatModel 进行初始化。
-     */
-    @Bean
-    public AiCodeGeneratorService aiCodeGeneratorService() {
-        return AiServices.create(AiCodeGeneratorService.class, chatModel);
-    }
-
-    /**
      * 创建并配置 StreamingAiCodeGeneratorService 的 Bean。
      * 使用 @Bean 注解将该方法返回的对象注册为 Spring 容器中的 Bean。
      *
      * @return 返回一个 StreamingAiCodeGeneratorService 实例，该实例使用注入的 StreamingChatModel 进行初始化。
      */
     @Bean
-    public AiCodeGeneratorService streamingAiCodeGeneratorService() {
+    public AiCodeGeneratorService aiCodeGeneratorService() {
         return AiServices.builder(AiCodeGeneratorService.class)
                 .chatModel(chatModel)
                 .streamingChatModel(streamingChatModel)

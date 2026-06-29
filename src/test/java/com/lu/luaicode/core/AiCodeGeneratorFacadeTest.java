@@ -27,7 +27,7 @@ class AiCodeGeneratorFacadeTest {
 
     @Test
     void generateAndSaveCode() {
-        File file = aiCodeGeneratorFacade.generateAndSaveCode("帮我生成一个登录页面，代码限制为50行", CodeGenTypeEnum.HTML);
+        File file = aiCodeGeneratorFacade.generateAndSaveCode("帮我生成一个登录页面，代码限制为50行", CodeGenTypeEnum.HTML,1L);
         assertNotNull(file);
     }
 }
