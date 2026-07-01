@@ -213,6 +213,7 @@ import {
   deployApp as deployAppApi,
   deleteMyApp,
 } from '@/api/appController'
+import { listAppChatHistory } from '@/api/chatHistoryController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
 import request from '@/request'
 
@@ -292,6 +293,35 @@ const showAppDetail = () => {
   appDetailVisible.value = true
 }
 
+// 加载聊天历史
+const loadChatHistory = async () => {
+  if (!appId.value) return
+  try {
+    const res = await listAppChatHistory({
+      appId: appId.value as unknown as number,
+      pageSize: 50,
+    })
+    if (res.data.code === 0 && res.data.data?.records) {
+      const records = res.data.data.records
+      // 按时间正序排列
+      records.sort((a, b) => {
+        const ta = a.createTime || ''
+        const tb = b.createTime || ''
+        return ta < tb ? -1 : ta > tb ? 1 : 0
+      })
+      messages.value = records.map((r) => ({
+        type: (r.messageType === 'ai' ? 'ai' : 'user') as 'user' | 'ai',
+        content: r.message || '',
+        createTime: r.createTime,
+      }))
+      await nextTick()
+      scrollToBottom()
+    }
+  } catch (error) {
+    console.error('加载聊天历史失败：', error)
+  }
+}
+
 // 获取应用信息
 const fetchAppInfo = async () => {
   const id = route.params.id as string
@@ -312,7 +342,11 @@ const fetchAppInfo = async () => {
       if (appInfo.value.codeGenType) {
         updatePreview()
       }
-      // 检查是否需要自动发送初始提示词（view 模式不自动发送）
+
+      // 加载已有聊天历史
+      await loadChatHistory()
+
+      // 检查是否需要自动发送初始提示词（view 模式不自动发送，已有历史也不发送）
       if (
           appInfo.value.initPrompt &&
           isOwner.value &&

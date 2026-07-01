@@ -1,6 +1,7 @@
 package com.lu.luaicode.core;
 
 import com.lu.luaicode.ai.AiCodeGeneratorService;
+import com.lu.luaicode.ai.AiCodeGeneratorServiceFactory;
 import com.lu.luaicode.ai.model.HtmlCodeResult;
 import com.lu.luaicode.ai.model.MultiFileCodeResult;
 import com.lu.luaicode.core.parser.CodeParserExecutor;
@@ -25,7 +26,8 @@ import java.io.File;
 public class AiCodeGeneratorFacade {
 
     @Resource
-    private AiCodeGeneratorService aiCodeGeneratorService; // AI代码生成服务接口，负责实际的代码生成逻辑
+    private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
+
 
 
     /**
@@ -39,6 +41,8 @@ public class AiCodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ResultCode.INTERNAL_ERROR, "生成类型为空");
         }
+        // 根据 appId 获取对应的 AI 服务实例
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 // 生成HTML代码并保存
@@ -70,6 +74,8 @@ public class AiCodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ResultCode.INTERNAL_ERROR, "生成类型为空");
         }
+        // 根据 appId 获取对应的 AI 服务实例
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 // 生成HTML代码流并处理

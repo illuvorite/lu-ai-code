@@ -1,7 +1,6 @@
 package com.lu.luaicode.service.impl;
 
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.lu.luaicode.model.dto.chatHistory.ChatHistoryQueryRequest;
@@ -10,7 +9,6 @@ import com.lu.luaicode.model.dto.entity.ChatHistory;
 import com.lu.luaicode.model.dto.entity.User;
 import com.lu.luaicode.model.enums.MessageTypeEnum;
 import com.lu.luaicode.model.enums.UserRoleEnum;
-import com.lu.luaicode.model.vo.ChatHistoryVO;
 import com.lu.luaicode.mapper.ChatHistoryMapper;
 import com.lu.luaicode.service.AppService;
 import com.lu.luaicode.service.ChatHistoryService;
@@ -18,6 +16,9 @@ import com.lu.luaicode.exception.ThrowUtils;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -25,9 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.lu.luaicode.exception.ResultCode.*;
 
@@ -112,7 +111,48 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
     }
 
 
-
+/**
+ * 加载聊天历史到内存中的方法
+ * @param appId 应用ID，用于标识特定应用
+ * @param chatMemory 聊天内存对象，用于存储加载的聊天历史
+ * @param maxCount 最大加载的聊天历史数量
+ * @return 实际加载的聊天历史数量，如果加载失败则返回0
+ */
+    @Override
+    public int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount) {
+        try {
+        // 创建查询条件，按应用ID筛选，按创建时间降序排列，并限制查询数量
+            QueryWrapper queryWrapper = QueryWrapper.create()
+                    .eq(ChatHistory::getAppId, appId)  // 设置应用ID等于传入的appId
+                    .orderBy(ChatHistory::getCreateTime, false)  // 按创建时间降序排列
+                    .limit(1, maxCount);  // 设置查询范围，从第1条开始，最多查询maxCount条
+        // 执行查询，获取聊天历史列表
+            List<ChatHistory> historyList = this.list(queryWrapper);
+        // 如果列表为空，直接返回0
+            if (CollUtil.isEmpty(historyList)) {
+                return 0;
+            }
+        // 将查询结果反转，使最早的对话在前
+            historyList = historyList.reversed();
+            int loadedCount = 0;  // 记录成功加载的聊天历史数量
+            chatMemory.clear();  // 清空聊天内存
+        // 遍历聊天历史列表
+            for (ChatHistory history : historyList) {
+            // 判断消息类型，如果是用户消息，则添加用户消息到内存
+                if (MessageTypeEnum.USER.getValue().equals(history.getMessageType())) {
+                    chatMemory.add(UserMessage.from(history.getMessage()));
+                } else if (MessageTypeEnum.AI.getValue().equals(history.getMessageType())) {
+                    chatMemory.add(AiMessage.from(history.getMessage()));
+                }
+                loadedCount++;
+            }
+            log.info("成功为appId:{},加载了 {} 条对话历史",appId, loadedCount);
+            return loadedCount;
+        } catch (Exception e) {
+            log.error("加载对话历史失败", e);
+            return 0;
+        }
+    }
 
 
 
