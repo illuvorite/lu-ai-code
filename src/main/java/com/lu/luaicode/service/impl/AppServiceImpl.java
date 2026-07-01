@@ -14,6 +14,7 @@ import com.lu.luaicode.model.dto.app.AppUpdateRequest;
 import com.lu.luaicode.model.dto.app.AppQueryRequest;
 import com.lu.luaicode.model.dto.entity.User;
 import com.lu.luaicode.model.enums.CodeGenTypeEnum;
+import com.lu.luaicode.model.enums.MessageTypeEnum;
 import com.lu.luaicode.model.enums.UserRoleEnum;
 import com.lu.luaicode.model.vo.AppVO;
 import com.lu.luaicode.model.vo.UserVO;
@@ -23,12 +24,14 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.lu.luaicode.model.dto.entity.App;
 import com.lu.luaicode.mapper.AppMapper;
 import com.lu.luaicode.service.AppService;
+import com.lu.luaicode.service.ChatHistoryService;
 import com.lu.luaicode.service.UserService;
 import com.lu.luaicode.exception.ThrowUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
@@ -56,6 +59,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
 
+    @Resource
+    private ChatHistoryService chatHistoryService;
+
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // 1. 参数校验
@@ -74,8 +80,26 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (codeGenTypeEnum == null) {
             throw new BusinessException(INTERNAL_ERROR, "不支持的代码生成类型");
         }
-        // 5. 调用 AI 生成代码
-        return aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+        // 5. 保存用户消息
+        chatHistoryService.saveMessage(appId, loginUser.getId(), message, MessageTypeEnum.USER.getValue());
+
+        // 6. 调用 AI 生成代码
+        Flux<String> codeFlux = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+
+        StringBuilder aiResponseBuilder = new StringBuilder();
+        // 7. 在流式完成后保存 AI 消息，出错时记录错误消息
+        return codeFlux.map(chunk -> {
+                    aiResponseBuilder.append(chunk);
+                    return chunk;
+                })
+                .doOnComplete(() -> {
+                    String aiResponse = aiResponseBuilder.toString();
+                    chatHistoryService.saveMessage(appId, loginUser.getId(), aiResponse, MessageTypeEnum.AI.getValue());
+                })
+                .doOnError(e -> {
+                    log.error("AI 代码生成异常: {}", e.getMessage());
+                    chatHistoryService.saveMessage(appId, loginUser.getId(), "AI 服务异常: " + e.getMessage(), MessageTypeEnum.AI.getValue());
+                });
     }
 
 
@@ -168,6 +192,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean deleteMyApp(Long id, HttpServletRequest request) {
         // 校验应用是否存在
         App oldApp = this.getById(id);
@@ -178,6 +203,20 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean isAdmin = UserRoleEnum.ADMIN.getValue().equals(loginUser.getUserRole())
                 || UserRoleEnum.SUPERADMIN.getValue().equals(loginUser.getUserRole());
         ThrowUtils.throwIf(!isOwner && !isAdmin, NO_AUTH_ERROR, "无权删除他人应用");
+        // 级联删除对话历史
+        chatHistoryService.deleteByAppId(id);
+        boolean result = this.removeById(id);
+        ThrowUtils.throwIf(!result, DATA_OPERATION_FAIL, "删除应用失败");
+        return true;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean adminDeleteApp(Long id) {
+        App oldApp = this.getById(id);
+        ThrowUtils.throwIf(oldApp == null, NOT_FOUND, "应用不存在");
+        // 级联删除对话历史
+        chatHistoryService.deleteByAppId(id);
         boolean result = this.removeById(id);
         ThrowUtils.throwIf(!result, DATA_OPERATION_FAIL, "删除应用失败");
         return true;

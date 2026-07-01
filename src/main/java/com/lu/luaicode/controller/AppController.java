@@ -255,9 +255,7 @@ public class AppController {
     public Result<Boolean> adminDeleteApp(@RequestBody DeleteRequest deleteRequest) {
         ThrowUtils.throwIf(deleteRequest == null || deleteRequest.getId() == null || deleteRequest.getId() <= 0, PARAM_ERROR);
         Long id = deleteRequest.getId();
-        App oldApp = appService.getById(id);
-        ThrowUtils.throwIf(oldApp == null, NOT_FOUND);
-        boolean result = appService.removeById(id);
+        boolean result = appService.adminDeleteApp(id);
         return Result.success(result);
     }
 

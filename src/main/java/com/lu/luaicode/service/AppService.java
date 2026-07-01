@@ -105,6 +105,14 @@ public interface AppService extends IService<App> {
     App adminGetAppById(Long id);
 
     /**
+     * 管理员删除应用（级联删除对话历史）
+     *
+     * @param id 应用 id
+     * @return 是否删除成功
+     */
+    Boolean adminDeleteApp(Long id);
+
+    /**
      * 构建查询包装器
      *
      * @param appQueryRequest 查询请求
