@@ -1,6 +1,7 @@
 package com.lu.luaicode.core.parser;
 
 import com.lu.luaicode.ai.model.MultiFileCodeResult;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -10,6 +11,7 @@ import java.util.regex.Pattern;
  *
  * @author yupi
  */
+@Slf4j
 public class MultiFileCodeParser implements CodeParser<MultiFileCodeResult> {
 
     private static final Pattern HTML_CODE_PATTERN = Pattern.compile("```html\\s*\\n([\\s\\S]*?)```", Pattern.CASE_INSENSITIVE);
@@ -20,9 +22,12 @@ public class MultiFileCodeParser implements CodeParser<MultiFileCodeResult> {
     public MultiFileCodeResult parseCode(String codeContent) {
         MultiFileCodeResult result = new MultiFileCodeResult();
         // 提取各类代码
+        log.info("原始 AI 返回文本:\n{}", codeContent);  // 确认 AI 到底输出了什么
         String htmlCode = extractCodeByPattern(codeContent, HTML_CODE_PATTERN);
         String cssCode = extractCodeByPattern(codeContent, CSS_CODE_PATTERN);
         String jsCode = extractCodeByPattern(codeContent, JS_CODE_PATTERN);
+        log.info("解析结果: html={}, css={}, js={}",
+                htmlCode != null, cssCode != null, jsCode != null);
         // 设置HTML代码
         if (htmlCode != null && !htmlCode.trim().isEmpty()) {
             result.setHtmlCode(htmlCode.trim());

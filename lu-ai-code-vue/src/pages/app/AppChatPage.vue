@@ -280,7 +280,8 @@ const isOwner = computed(() => {
 })
 
 const isAdmin = computed(() => {
-  return loginUserStore.loginUser.userRole === 'admin'
+  const role = loginUserStore.loginUser.userRole
+  return role === 'admin' || role === 'SuperAdmin'
 })
 
 // 应用详情相关
@@ -405,6 +406,8 @@ const sendMessage = async () => {
   await generateCode(message, aiMessageIndex)
 }
 
+let activeEventSource: EventSource | null = null
+
 // 生成代码 - 使用 EventSource 处理流式响应
 const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   let eventSource: EventSource | null = null
@@ -426,8 +429,26 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     eventSource = new EventSource(url, {
       withCredentials: true,
     })
+    activeEventSource = eventSource
 
     let fullContent = ''
+    let pendingContent = ''
+    let throttleTimer: ReturnType<typeof setTimeout> | null = null
+
+    // 节流更新界面，避免每次微小的 chunk 都触发全量 markdown 重渲染（导致卡死）
+    const flushContent = () => {
+      if (throttleTimer) {
+        clearTimeout(throttleTimer)
+        throttleTimer = null
+      }
+      if (pendingContent) {
+        fullContent += pendingContent
+        pendingContent = ''
+        messages.value[aiMessageIndex].content = fullContent
+        messages.value[aiMessageIndex].loading = false
+        scrollToBottom()
+      }
+    }
 
     // 处理接收到的消息
     eventSource.onmessage = function (event) {
@@ -440,10 +461,15 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
         // 拼接内容
         if (content !== undefined && content !== null) {
-          fullContent += content
-          messages.value[aiMessageIndex].content = fullContent
-          messages.value[aiMessageIndex].loading = false
-          scrollToBottom()
+          // 先累积到缓冲区
+          pendingContent += content
+
+          // 节流：每 200ms 批量刷新一次界面
+          if (!throttleTimer) {
+            throttleTimer = setTimeout(() => {
+              flushContent()
+            }, 200)
+          }
         }
       } catch (error) {
         console.error('解析消息失败:', error)
@@ -455,9 +481,15 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     eventSource.addEventListener('done', function () {
       if (streamCompleted) return
 
+      // 立即刷新缓冲区，确保最后一段内容不丢失
+      flushContent()
+
       streamCompleted = true
       isGenerating.value = false
-      eventSource?.close()
+      if (eventSource) {
+        activeEventSource = null
+        eventSource.close()
+      }
 
       // 延迟更新预览，确保后端已完成处理
       setTimeout(async () => {
@@ -482,7 +514,10 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
         streamCompleted = true
         isGenerating.value = false
-        eventSource?.close()
+        if (eventSource) {
+          activeEventSource = null
+          eventSource.close()
+        }
       } catch (parseError) {
         console.error('解析错误事件失败:', parseError, '原始数据:', event.data)
         handleError(new Error('服务器返回错误'), aiMessageIndex)
@@ -492,19 +527,18 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     // 处理错误
     eventSource.onerror = function () {
       if (streamCompleted || !isGenerating.value) return
-      // 检查是否是正常的连接关闭
-      if (eventSource?.readyState === EventSource.CONNECTING) {
-        streamCompleted = true
-        isGenerating.value = false
-        eventSource?.close()
 
-        setTimeout(async () => {
-          await fetchAppInfo()
-          updatePreview()
-        }, 1000)
-      } else {
-        handleError(new Error('SSE连接错误'), aiMessageIndex)
+      // 浏览器 EventSource 在断开后会尝试自动重连，此时 readyState 为 CONNECTING
+      // 我们不拦截重连过程，让它继续尝试恢复连接
+      if (eventSource?.readyState === EventSource.CONNECTING) {
+        // 等待自动重连，不中断流
+        console.warn('SSE 连接断开，浏览器正在尝试自动重连...')
+        return
       }
+
+      // readyState === CLOSED (2)，连接已彻底关闭
+      console.error('SSE 连接已关闭')
+      handleError(new Error('SSE连接异常中断'), aiMessageIndex)
     }
   } catch (error) {
     console.error('创建 EventSource 失败：', error)
@@ -519,6 +553,10 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   messages.value[aiMessageIndex].loading = false
   message.error('生成失败，请重试')
   isGenerating.value = false
+  if (activeEventSource) {
+    activeEventSource.close()
+    activeEventSource = null
+  }
 }
 
 // 更新预览
@@ -695,7 +733,11 @@ onMounted(() => {
 
 // 清理资源
 onUnmounted(() => {
-  // EventSource 会在组件卸载时自动清理
+  // 主动关闭 EventSource 连接，防止组件卸载后连接泄漏
+  if (activeEventSource) {
+    activeEventSource.close()
+    activeEventSource = null
+  }
 })
 </script>
 

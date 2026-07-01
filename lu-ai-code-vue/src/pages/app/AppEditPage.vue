@@ -150,7 +150,8 @@ const formData = reactive({
 
 // 是否为管理员
 const isAdmin = computed(() => {
-  return loginUserStore.loginUser.userRole === 'admin'
+  const role = loginUserStore.loginUser.userRole
+  return role === 'admin' || role === 'SuperAdmin'
 })
 
 // 表单验证规则

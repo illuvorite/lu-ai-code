@@ -2,7 +2,6 @@ package com.lu.luaicode.core.saver;
 
 
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.lu.luaicode.constant.AppConstant;
 import com.lu.luaicode.exception.ResultCode;
@@ -50,7 +49,6 @@ public abstract class CodeFileSaverTemplate<T> {
 /**
  * 验证输入参数的方法
  * @param result 需要验证的输入参数，类型为泛型T
- * @throws 如果result为null，则抛出带有指定错误码和消息的异常
  */
     protected void validateInput(T result) {
         // 使用ThrowUtils工具类检查result是否为null
@@ -67,8 +65,8 @@ public abstract class CodeFileSaverTemplate<T> {
     protected   String buildUniqueDir(Long appId) {
         // 获取当前代码类型的值
         String codeType=getCodeType().getValue();
-        // 使用业务类型和雪花算法生成的ID拼接成唯一的目录名称
-        String uniqueDirName = StrUtil.format("{}_{}", codeType, IdUtil.getSnowflakeNextIdStr());
+        // 使用业务类型和应用ID拼接成唯一的目录名称
+        String uniqueDirName = StrUtil.format("{}_{}", codeType, appId);
         // 拼接完整的目录路径，使用系统相关的文件分隔符
         String dirPath = FILE_SAVE_ROOT_DIR + File.separator + uniqueDirName;
         // 创建目录，如果目录已存在则不创建，不存在则创建

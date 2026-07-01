@@ -24,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Map;
 
 import static com.lu.luaicode.exception.ResultCode.NOT_FOUND;
@@ -37,6 +39,7 @@ import static com.lu.luaicode.exception.ResultCode.PARAM_ERROR;
 @RestController
 @RequestMapping("/app")
 @Tag(name = "应用接口")
+@Slf4j
 public class AppController {
 
     @Resource
@@ -58,30 +61,48 @@ public class AppController {
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
                                                        HttpServletRequest request) {
-        // 参数校验
-        ThrowUtils.throwIf(appId == null || appId <= 0, PARAM_ERROR, "应用ID无效");
-        ThrowUtils.throwIf(StrUtil.isBlank(message), PARAM_ERROR, "用户消息不能为空");
-        // 获取当前登录用户
-        User loginUser = userService.getLoginUser(request);
-        // 调用服务生成代码（流式）
-        Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
-        // 转换为 ServerSentEvent 格式
-        return contentFlux
-                .map(chunk -> {
-                    // 将内容包装成JSON对象
-                    Map<String, String> wrapper = Map.of("d", chunk);
-                    String jsonData = JSONUtil.toJsonStr(wrapper);
-                    return ServerSentEvent.<String>builder()
-                            .data(jsonData)
-                            .build();
-                })
-                .concatWith(Mono.just(
-                        // 发送结束事件
-                        ServerSentEvent.<String>builder()
-                                .event("done")
-                                .data("")
-                                .build()
-                ));
+        try {
+            // 参数校验
+            ThrowUtils.throwIf(appId == null || appId <= 0, PARAM_ERROR, "应用ID无效");
+            ThrowUtils.throwIf(StrUtil.isBlank(message), PARAM_ERROR, "用户消息不能为空");
+            // 获取当前登录用户
+            User loginUser = userService.getLoginUser(request);
+            // 调用服务生成代码（流式）
+            Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
+            // 转换为 ServerSentEvent 格式
+            return contentFlux
+                    .map(chunk -> {
+                        // 将内容包装成JSON对象
+                        Map<String, String> wrapper = Map.of("d", chunk);
+                        String jsonData = JSONUtil.toJsonStr(wrapper);
+                        return ServerSentEvent.<String>builder()
+                                .data(jsonData)
+                                .build();
+                    })
+                    .concatWith(Mono.just(
+                            // 发送结束事件
+                            ServerSentEvent.<String>builder()
+                                    .event("done")
+                                    .data("")
+                                    .build()
+                    ))
+                    .onErrorResume(e -> {
+                        // 捕获流式处理异常（如 LangChain4j 连接断开），发送错误事件而非崩溃
+                        log.error("SSE 流式生成代码异常: {}", e.getMessage());
+                        return Mono.just(ServerSentEvent.<String>builder()
+                                .event("business-error")
+                                .data("{\"message\": \"AI 服务连接异常，请重试\"}")
+                                .build());
+                    });
+        } catch (Exception e) {
+            // 捕获参数校验或用户认证阶段的异常，同样以 SSE 错误事件返回
+            log.error("SSE 请求预处理异常: {}", e.getMessage());
+            String errorJson = JSONUtil.toJsonStr(Map.of("message", e.getMessage()));
+            return Flux.just(ServerSentEvent.<String>builder()
+                    .event("business-error")
+                    .data(errorJson)
+                    .build());
+        }
     }
 
 
