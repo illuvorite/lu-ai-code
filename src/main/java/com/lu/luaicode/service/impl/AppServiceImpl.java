@@ -7,6 +7,7 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.lu.luaicode.constant.AppConstant;
 import com.lu.luaicode.core.AiCodeGeneratorFacade;
+import com.lu.luaicode.core.handler.StreamHandlerExecutor;
 import com.lu.luaicode.exception.BusinessException;
 import com.lu.luaicode.model.dto.app.AppAddRequest;
 import com.lu.luaicode.model.dto.app.AppAdminUpdateRequest;
@@ -62,6 +63,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private ChatHistoryService chatHistoryService;
 
+    @Resource
+    private StreamHandlerExecutor streamHandlerExecutor;
+
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // 1. 参数校验
@@ -85,21 +89,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
         // 6. 调用 AI 生成代码
         Flux<String> codeFlux = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
-
-        StringBuilder aiResponseBuilder = new StringBuilder();
-        // 7. 在流式完成后保存 AI 消息，出错时记录错误消息
-        return codeFlux.map(chunk -> {
-                    aiResponseBuilder.append(chunk);
-                    return chunk;
-                })
-                .doOnComplete(() -> {
-                    String aiResponse = aiResponseBuilder.toString();
-                    chatHistoryService.saveMessage(appId, loginUser.getId(), aiResponse, MessageTypeEnum.AI.getValue());
-                })
-                .doOnError(e -> {
-                    log.error("AI 代码生成异常: {}", e.getMessage());
-                    chatHistoryService.saveMessage(appId, loginUser.getId(), "AI 服务异常: " + e.getMessage(), MessageTypeEnum.AI.getValue());
-                });
+        // 7. 处理流式响应并保存 AI 消息
+       return streamHandlerExecutor.doExecute(codeFlux, chatHistoryService, appId, loginUser,codeGenTypeEnum);
     }
 
 
@@ -166,7 +157,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         app.setAppName(appAddRequest.getInitPrompt().substring(0, Math.min(appAddRequest.getInitPrompt().length(), 12)));
         app.setUserId(loginUser.getId());
         //暂时设置多文件生成
-        app.setCodeGenType(CodeGenTypeEnum.MULTI_FILE.getValue());
+        app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
         boolean save = this.save(app);
         ThrowUtils.throwIf(!save, DATA_OPERATION_FAIL, "创建应用失败");
         return app.getId();

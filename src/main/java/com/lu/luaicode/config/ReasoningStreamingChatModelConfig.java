@@ -3,35 +3,28 @@ package com.lu.luaicode.config;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * ClassName: ResoningStreamingChatModelConfig
- * Package: com.lu.luaicode.config
- * Description:
- *
- * @Author Dopamine
- * @Create 2026/7/5 17:23
- * @Version 1.0
+ * 推理流式模型配置，用于生成Vue项目（带工具调用）
  */
 @Configuration
 @Slf4j
-@ConfigurationProperties(prefix = "langchain4j.open-ai.chat.model")
 public class ReasoningStreamingChatModelConfig {
 
-
+    @Value("${langchain4j.open-ai.chat-model.base-url}")
     private String baseUrl;
+
+    @Value("${langchain4j.open-ai.chat-model.api-key}")
     private String apiKey;
 
-    /**
-     * 推理流式模型用于生成Vue项目带工具调用
-     */
     @Bean
     public StreamingChatModel reasoningStreamingChatModel() {
-        final String modelName="deepseek-flash";
-        final int maxToken=10000;
+        log.info("创建推理流式模型，baseUrl: {}, apiKey: {}...", baseUrl, apiKey.substring(0, 8));
+        final String modelName = "deepseek-v4-flash";
+        final int maxToken = 10000;
         return OpenAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
