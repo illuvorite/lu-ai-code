@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -78,6 +79,16 @@ public class ChatHistoryController {
         QueryWrapper queryWrapper = chatHistoryService.getQueryWrapper(chatHistoryQueryRequest);
         Page<ChatHistory> result = chatHistoryService.page(Page.of(pageNum, pageSize), queryWrapper);
         return Result.success(result);
+    }
+
+    /**
+     * 导出应用的对话历史为 Markdown 文件
+     */
+    @GetMapping("/app/{appId}/export")
+    @Operation(summary = "导出对话历史为 Markdown 文件")
+    public void exportChatHistory(@PathVariable Long appId, HttpServletRequest request, HttpServletResponse response) {
+        User loginUser = userService.getLoginUser(request);
+        chatHistoryService.exportChatHistoryToMarkdown(appId, response, loginUser);
     }
 
 

@@ -68,19 +68,19 @@ public class AiCodeGeneratorServiceFactory {
      * @return 返回新创建的 AiCodeGeneratorService 实例
      */
     private AiCodeGeneratorService createAiCodeGeneratorService(Long appId) {
-        log.info("为 appId: {} 创建新的 AI 服务实例", appId);
+        log.info("为 appId: {} 创建新的 AI 服务实例", appId);  // 记录日志，表示正在为特定 appId 创建 AI 服务实例
         // 根据 appId 构建独立的对话记忆
-        MessageWindowChatMemory chatMemory = MessageWindowChatMemory
-                .builder()
-                .id(appId)  // 设置对话记忆 ID 为 appId
-                .chatMemoryStore(redisChatMemoryStore)  // 设置 Redis 存储器
-                .maxMessages(20)  // 设置最大消息数量为 20
+        MessageWindowChatMemory chatMemory = MessageWindowChatMemory  // 创建 MessageWindowChatMemory 实例
+                .builder()  // 使用构建器模式创建实例
+                .id(appId)  // 设置对话记忆 ID 为 appId，确保每个应用有独立的对话记忆
+                .chatMemoryStore(redisChatMemoryStore)  // 设置 Redis 存储器，用于持久化对话记忆
+                .maxMessages(20)  // 设置最大消息数量为 20，控制上下文长度
                 .build();  // 构建对话记忆实例
-        chatHistoryService.loadChatHistoryToMemory(appId,chatMemory,20);
-        return AiServices.builder(AiCodeGeneratorService.class)
-                .chatModel(chatModel)  // 设置聊天模型
-                .streamingChatModel(streamingChatModel)  // 设置流式聊天模型
-                .chatMemory(chatMemory)  // 设置对话记忆
+        chatHistoryService.loadChatHistoryToMemory(appId,chatMemory,20);  // 从 Redis 加载历史对话到内存中
+        return AiServices.builder(AiCodeGeneratorService.class)  // 使用构建器模式创建 AI 服务实例
+                .chatModel(chatModel)  // 设置聊天模型，用于非流式对话
+                .streamingChatModel(streamingChatModel)  // 设置流式聊天模型，用于流式对话
+                .chatMemory(chatMemory)  // 设置对话记忆，保持对话上下文
                 .build();  // 构建 AI 服务实例
     }
 

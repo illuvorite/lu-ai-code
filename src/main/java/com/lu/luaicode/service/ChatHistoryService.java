@@ -9,6 +9,7 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -48,7 +49,28 @@ public interface ChatHistoryService extends IService<ChatHistory> {
     void deleteByAppId(Long appId);
 
 
+    /**
+     * 导出应用的对话历史为 Markdown 文件（流式写入）
+     *
+     * @param appId    应用 ID
+     * @param response HTTP 响应（直接写入输出流）
+     * @param loginUser 当前登录用户
+     */
+    void exportChatHistoryToMarkdown(Long appId, HttpServletResponse response, User loginUser);
+
+/**
+ * 将聊天历史记录加载到内存中
+ *
+ * @param appId 应用程序ID，用于标识特定的应用程序
+ * @param maxCount 最大加载记录数量，限制加载的历史记录条数
+ * @return 返回实际加载的记录数量，可能是0到maxCount之间的值
+ */
     int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount);
 
+/**
+ * 根据聊天历史查询请求参数获取查询构造器
+ * @param chatHistoryQueryRequest 聊天历史查询请求对象，包含查询条件
+ * @return QueryWrapper 返回一个用于构建数据库查询条件的QueryWrapper对象
+ */
     QueryWrapper getQueryWrapper(ChatHistoryQueryRequest chatHistoryQueryRequest);
 }

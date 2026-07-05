@@ -26,7 +26,7 @@ import java.io.File;
 public class AiCodeGeneratorFacade {
 
     @Resource
-    private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
+    private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory; // 注入AI代码生成服务工厂，用于获取不同类型的AI代码生成服务实例
 
 
 
@@ -34,16 +34,17 @@ public class AiCodeGeneratorFacade {
      * 同步方法：生成并保存代码
      * @param userMessage 用户输入的消息/需求
      * @param codeGenTypeEnum 代码生成类型枚举
+     * @param appId 应用ID，用于标识不同的应用
      * @return 生成的代码文件
      * @throws BusinessException 当生成类型为空或不支持时抛出业务异常
      */
     public File generateAndSaveCode(String userMessage, CodeGenTypeEnum codeGenTypeEnum,Long appId) {
-        if (codeGenTypeEnum == null) {
+        if (codeGenTypeEnum == null) { // 检查代码生成类型是否为空
             throw new BusinessException(ResultCode.INTERNAL_ERROR, "生成类型为空");
         }
         // 根据 appId 获取对应的 AI 服务实例
         AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
-        return switch (codeGenTypeEnum) {
+        return switch (codeGenTypeEnum) { // 使用switch表达式处理不同的代码生成类型
             case HTML -> {
                 // 生成HTML代码并保存
                 HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
@@ -67,16 +68,17 @@ public class AiCodeGeneratorFacade {
      * 异步方法：生成并保存代码（流式处理）
      * @param userMessage 用户输入的消息/需求
      * @param codeGenTypeEnum 代码生成类型枚举
+     * @param appId 应用ID，用于标识不同的应用
      * @return Flux<String> 流式返回生成的代码
      * @throws BusinessException 当生成类型为空或不支持时抛出业务异常
      */
     public Flux<String> generateAndSaveCodeStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum,Long appId) {
-        if (codeGenTypeEnum == null) {
+        if (codeGenTypeEnum == null) { // 检查代码生成类型是否为空
             throw new BusinessException(ResultCode.INTERNAL_ERROR, "生成类型为空");
         }
         // 根据 appId 获取对应的 AI 服务实例
         AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
-        return switch (codeGenTypeEnum) {
+        return switch (codeGenTypeEnum) { // 使用switch表达式处理不同的代码生成类型
             case HTML -> {
                 // 生成HTML代码流并处理
                 Flux<String> stringFlux = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
@@ -99,12 +101,14 @@ public class AiCodeGeneratorFacade {
 
     /**
      * 处理代码流的方法
+     * 该方法接收一个代码流，实时收集代码片段，并在流式返回完成后保存代码
      * @param codeStream 代码流
      * @param codeGenType 代码生成类型
+     * @param appId 应用ID，用于标识不同的应用
      * @return 处理后的代码流
      */
     private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType,Long appId) {
-        StringBuilder codeBuilder = new StringBuilder();
+        StringBuilder codeBuilder = new StringBuilder(); // 用于收集代码片段的字符串构建器
         return codeStream.doOnNext(chunk -> {
             // 实时收集代码片段
             codeBuilder.append(chunk);

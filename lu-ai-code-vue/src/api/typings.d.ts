@@ -90,55 +90,6 @@ declare namespace API {
     id: number
   }
 
-  type ChatHistory = {
-    id?: number
-    message?: string
-    messageType?: string
-    appId?: number
-    userId?: number
-    createTime?: string
-    updateTime?: string
-    isDelete?: number
-  }
-
-  type ChatHistoryQueryRequest = {
-    pageNum?: number
-    pageSize?: number
-    sortField?: string
-    sortOrder?: string
-    id?: number
-    message?: string
-    messageType?: string
-    appId?: number
-    userId?: number
-    lastCreateTime?: string
-  }
-
-  type listAppChatHistoryParams = {
-    appId: number
-    pageSize?: number
-    lastCreateTime?: string
-  }
-
-  type PageChatHistory = {
-    records?: ChatHistory[]
-    pageNumber?: number
-    pageSize?: number
-    totalPage?: number
-    totalRow?: number
-    optimizeCountQuery?: boolean
-  }
-
-  type ResultPageChatHistory = {
-    code?: number
-    message?: string
-    data?: PageChatHistory
-    traceId?: string
-    timestamp?: number
-    success?: boolean
-    fail?: boolean
-  }
-
   type listUserPage1Params = {
     id: number
   }

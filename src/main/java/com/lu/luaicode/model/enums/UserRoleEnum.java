@@ -8,7 +8,7 @@ public enum UserRoleEnum {
 
     USER("用户", "user"),
     ADMIN("管理员", "admin"),
-    SUPERADMIN("超级管理员", "SuperAdmin");
+    SUPERADMIN("超级管理员", "superAdmin");
 
     private final String text;
 
