@@ -43,7 +43,7 @@ public class AiCodeGeneratorFacade {
             throw new BusinessException(ResultCode.INTERNAL_ERROR, "生成类型为空");
         }
         // 根据 appId 获取对应的 AI 服务实例
-        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId,codeGenTypeEnum);
         return switch (codeGenTypeEnum) { // 使用switch表达式处理不同的代码生成类型
             case HTML -> {
                 // 生成HTML代码并保存
@@ -77,7 +77,7 @@ public class AiCodeGeneratorFacade {
             throw new BusinessException(ResultCode.INTERNAL_ERROR, "生成类型为空");
         }
         // 根据 appId 获取对应的 AI 服务实例
-        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId,codeGenTypeEnum);
         return switch (codeGenTypeEnum) { // 使用switch表达式处理不同的代码生成类型
             case HTML -> {
                 // 生成HTML代码流并处理
@@ -88,6 +88,10 @@ public class AiCodeGeneratorFacade {
                 // 生成多文件代码流并处理
                 Flux<String> codeStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
                 yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE,appId);
+            }
+            case VUE_PROJECT -> {
+                Flux<String> codeStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId,userMessage);
+                yield processCodeStream(codeStream, CodeGenTypeEnum.VUE_PROJECT,appId);
             }
             default -> {
                 // 不支持的生成类型处理
