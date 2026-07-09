@@ -22,13 +22,20 @@ import java.util.UUID;
 public class ScreenshotServiceImpl implements ScreenshotService {
 
     @Resource
-    private WebScreenshotUtils webScreenshotUtils;
+    private WebScreenshotUtils webScreenshotUtils; // 网页截图工具类
 
     @Resource
-    private CosManager cosManager;
+    private CosManager cosManager; // 对象存储管理器
 
+    /**
+     * 生成网页截图并上传到对象存储
+     *
+     * @param webUrl 网页URL
+     * @return 对象存储访问URL
+     */
     @Override
     public String generateAndUploadScreenshot(String webUrl) {
+        // 参数校验：URL不能为空
         ThrowUtils.throwIf(StrUtil.isBlank(webUrl), ResultCode.PARAM_ERROR, "网页URL不能为空");
         log.info("开始生成网页截图，URL: {}", webUrl);
         // 1. 生成本地截图
@@ -53,9 +60,11 @@ public class ScreenshotServiceImpl implements ScreenshotService {
      * @return 对象存储访问URL，失败返回null
      */
     private String uploadScreenshotToCos(String localScreenshotPath) {
+        // 参数校验：路径不能为空
         if (StrUtil.isBlank(localScreenshotPath)) {
             return null;
         }
+        // 检查文件是否存在
         File screenshotFile = new File(localScreenshotPath);
         if (!screenshotFile.exists()) {
             log.error("截图文件不存在: {}", localScreenshotPath);
@@ -70,8 +79,12 @@ public class ScreenshotServiceImpl implements ScreenshotService {
     /**
      * 生成截图的对象存储键
      * 格式：/screenshots/2025/07/31/filename.jpg
+     *
+     * @param fileName 文件名
+     * @return 对象存储键
      */
     private String generateScreenshotKey(String fileName) {
+        // 按日期生成路径
         String datePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
         return String.format("/screenshots/%s/%s", datePath, fileName);
     }
@@ -84,6 +97,7 @@ public class ScreenshotServiceImpl implements ScreenshotService {
     private void cleanupLocalFile(String localFilePath) {
         File localFile = new File(localFilePath);
         if (localFile.exists()) {
+            // 删除文件及其父目录
             File parentDir = localFile.getParentFile();
             FileUtil.del(parentDir);
             log.info("本地截图文件已清理: {}", localFilePath);

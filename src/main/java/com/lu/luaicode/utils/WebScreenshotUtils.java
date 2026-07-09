@@ -24,6 +24,9 @@ import java.time.Duration;
 import java.util.UUID;
 
 
+/**
+ * Web截图工具类，提供网页截图、图片压缩、临时文件清理等功能
+ */
 @Slf4j
 @Component
 public class WebScreenshotUtils {
@@ -32,7 +35,7 @@ public class WebScreenshotUtils {
     private WebDriverPool webDriverPool;
 
 /**
- * 保存网页截图
+ * 保存网页截图并压缩
  * @param webUrl 要截图的网页URL地址
  * @return 返回压缩后的图片路径，如果失败则返回null
  */
@@ -85,6 +88,10 @@ public class WebScreenshotUtils {
 
     /**
      * 初始化 Chrome 浏览器驱动
+     * 配置了无头模式、窗口大小、用户代理等参数
+     * @param width 浏览器窗口宽度
+     * @param height 浏览器窗口高度
+     * @return 配置好的WebDriver实例
      */
     public static WebDriver initChromeDriver(int width, int height) {
         try {
@@ -135,6 +142,7 @@ public class WebScreenshotUtils {
 
     /**
      * 压缩图片
+     * 使用ImgUtil工具类将图片压缩为JPEG格式，质量为0.3
      * @param originImagePath 原始图片路径
      * @param compressedImagePath 压缩后图片保存路径
      */
@@ -156,6 +164,7 @@ public class WebScreenshotUtils {
 
     /**
      * 等待页面完全加载
+     * 通过JavaScript检查document.readyState，并额外等待1秒确保动态内容加载完成
      * @param driver 浏览器驱动对象
      */
     private static void waitForPageLoad(WebDriver driver) {
