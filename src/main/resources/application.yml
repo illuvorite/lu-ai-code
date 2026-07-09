@@ -19,6 +19,21 @@ spring:
     password: admin
   application:
     name: lu-ai-code
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        retry:
+          enabled: false
+
+screenshot:
+  pool:
+    max-size: 4
+    min-idle: 1
+
 server:
   port: 8223
   servlet:

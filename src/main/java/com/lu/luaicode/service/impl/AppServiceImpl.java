@@ -7,6 +7,7 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.lu.luaicode.constant.AppConstant;
 import com.lu.luaicode.core.AiCodeGeneratorFacade;
+import com.lu.luaicode.core.builder.VueProjectBuilder;
 import com.lu.luaicode.core.handler.StreamHandlerExecutor;
 import com.lu.luaicode.exception.BusinessException;
 import com.lu.luaicode.model.dto.app.AppAddRequest;
@@ -19,6 +20,8 @@ import com.lu.luaicode.model.enums.MessageTypeEnum;
 import com.lu.luaicode.model.enums.UserRoleEnum;
 import com.lu.luaicode.model.vo.AppVO;
 import com.lu.luaicode.model.vo.UserVO;
+import com.lu.luaicode.mq.ScreenshotTaskProducer;
+import com.lu.luaicode.service.ScreenshotService;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -65,6 +68,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
+
+    @Resource
+    private ScreenshotService screenshotService;
+
+    @Resource
+    private ScreenshotTaskProducer screenshotTaskProducer;
 
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
@@ -90,7 +101,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 6. 调用 AI 生成代码
         Flux<String> codeFlux = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
         // 7. 处理流式响应并保存 AI 消息
-       return streamHandlerExecutor.doExecute(codeFlux, chatHistoryService, appId, loginUser,codeGenTypeEnum);
+        return streamHandlerExecutor.doExecute(codeFlux, chatHistoryService, appId, loginUser, codeGenTypeEnum);
     }
 
 
@@ -122,26 +133,53 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (!sourceDir.exists() || !sourceDir.isDirectory()) {
             throw new BusinessException(INTERNAL_ERROR, "应用代码不存在，请先生成代码");
         }
-        // 7. 复制文件到部署目录
+// 7. Vue 项目特殊处理：执行构建
+        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
+        if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
+            // Vue 项目需要构建
+            boolean buildSuccess = vueProjectBuilder.buildProject(sourceDirPath);
+            ThrowUtils.throwIf(!buildSuccess, INTERNAL_ERROR, "Vue 项目构建失败，请检查代码和依赖");
+            // 检查 dist 目录是否存在
+            File distDir = new File(sourceDirPath, "dist");
+            ThrowUtils.throwIf(!distDir.exists(), INTERNAL_ERROR, "Vue 项目构建完成但未生成 dist 目录");
+            // 将 dist 目录作为部署源
+            sourceDir = distDir;
+            log.info("Vue 项目构建成功，将部署 dist 目录: {}", distDir.getAbsolutePath());
+        }
+        // 8. 复制文件到部署目录
         String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
         try {
             FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
         } catch (Exception e) {
-            throw new BusinessException(INTERNAL_ERROR, "部署失败：" + e.getMessage());
+            log.error("复制文件到部署目录失败: {}", e.getMessage(), e);
+            throw new BusinessException(INTERNAL_ERROR, "复制文件到部署目录失败" + e.getMessage());
         }
-        // 8. 更新应用的 deployKey 和部署时间
+        //9. 更新应用的 deployKey 和部署时间
         App updateApp = new App();
         updateApp.setId(appId);
         updateApp.setDeployKey(deployKey);
         updateApp.setDeployedTime(LocalDateTime.now());
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, DATA_OPERATION_FAIL, "更新应用部署信息失败");
-        // 9. 返回可访问的 URL
-        return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        // 10. 返回可访问的 URL
+        String appDeployUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        // 11. 异步生成截图并且更新应用封面
+        generateAppScreenshotAsync(appId, appDeployUrl);
+        return appDeployUrl;
     }
 
 
-
+    /**
+     * 异步生成应用截图并更新应用封面
+     *
+     * @param appId  应用ID
+     * @param appUrl 应用访问url
+     */
+    @Override
+    public void generateAppScreenshotAsync(Long appId, String appUrl) {
+        screenshotTaskProducer.sendTask(appId, appUrl);//消息生产者 发送消息
+        log.info("截图任务已投递: appId={}, url={}", appId, appUrl);
+    }
 
 
     @Override
@@ -341,7 +379,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 获取app关联的userId
         Long userId = app.getUserId();
         // 如果userId不为null，则查询对应的用户信息并设置到appVO中
-        if(userId != null) {
+        if (userId != null) {
             User user = userService.getById(userId);
             UserVO userVO = userService.getUserVO(user);
             appVO.setUser(userVO);
