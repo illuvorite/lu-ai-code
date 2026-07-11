@@ -2,6 +2,7 @@ package com.lu.luaicode.langgraph4j;
 
 import com.lu.luaicode.exception.BusinessException;
 import com.lu.luaicode.exception.ResultCode;
+import com.lu.luaicode.langgraph4j.model.QualityResult;
 import com.lu.luaicode.langgraph4j.node.*;
 import com.lu.luaicode.langgraph4j.state.WorkflowContext;
 import com.lu.luaicode.model.enums.CodeGenTypeEnum;
@@ -39,6 +40,7 @@ public class CodeGenWorkflow {
                     .addNode("prompt_enhancer", PromptEnhancerNode.create())      // 添加提示词增强器节点
                     .addNode("router", RouterNode.create())                      // 添加路由节点
                     .addNode("code_generator", CodeGeneratorNode.create())        // 添加代码生成器节点
+                    .addNode("code_quality_check",CodeQualityCheckNode.create())
                     .addNode("project_builder", ProjectBuilderNode.create())      // 添加项目构建器节点
 
                     // 添加边，定义节点间的执行顺序
@@ -46,11 +48,17 @@ public class CodeGenWorkflow {
                     .addEdge("image_collector", "prompt_enhancer")                // 图像收集器到提示词增强器
                     .addEdge("prompt_enhancer", "router")                        // 提示词增强器到路由节点
                     .addEdge("router", "code_generator")                         // 路由节点到代码生成器
-                    .addEdge("code_generator", "project_builder")
-                    .addConditionalEdges("code_generator",edge_async(this::routeBuildOrSkip),Map.of(
-                            "build", "project_builder",
-                            "skip", END
-                    ))// 代码生成器到项目构建器
+                    .addNode("code_quality_check", CodeQualityCheckNode.create())
+                    .addEdge("code_generator", "code_quality_check")
+                    // 新增质检条件边：根据质检结果决定下一步
+                    .addConditionalEdges("code_quality_check",
+                            edge_async(this::routeAfterQualityCheck),
+                            Map.of(
+                                    "build", "project_builder",   // 质检通过且需要构建
+                                    "skip_build", END,            // 质检通过但跳过构建
+                                    "fail", "code_generator"      // 质检失败，重新生成
+                            ))
+
                     .addEdge("project_builder", END)                             // 项目构建器到结束节点
 
                     // 编译工作流
@@ -106,5 +114,18 @@ public class CodeGenWorkflow {
         log.info("代码生成工作流执行完成！");
         return finalContext;
     }
+    private String routeAfterQualityCheck(MessagesState<String> state) {
+        WorkflowContext context = WorkflowContext.getContext(state);
+        QualityResult qualityResult = context.getQualityResult();
+        // 如果质检失败，重新生成代码
+        if (qualityResult == null || !qualityResult.getIsValid()) {
+            log.error("代码质检失败，需要重新生成代码");
+            return "fail";
+        }
+        // 质检通过，使用原有的构建路由逻辑
+        log.info("代码质检通过，继续后续流程");
+        return routeBuildOrSkip(state);
+    }
+
 }
 

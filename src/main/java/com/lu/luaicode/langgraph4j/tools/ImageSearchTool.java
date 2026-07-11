@@ -16,19 +16,32 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 图片搜索工具类
+ * 用于通过Pexels API搜索相关图片资源，用于网站内容展示
+ */
 @Slf4j
 @Component
 public class ImageSearchTool {
 
+    // Pexels API的基础URL
     private static final String PEXELS_API_URL = "https://api.pexels.com/v1/search";
 
+    // 从配置文件中注入的Pexels API密钥
     @Value("${pexels.api-key}")
     private String pexelsApiKey;
 
+    /**
+     * 搜索内容相关的图片
+     * @param query 搜索关键词
+     * @return 图片资源列表
+     */
     @Tool("搜索内容相关的图片，用于网站内容展示")
     public List<ImageResource> searchContentImages(@P("搜索关键词") String query) {
+        // 初始化图片列表
         List<ImageResource> imageList = new ArrayList<>();
-        int searchCount = 12;
+        // 设置每页返回的图片数量
+        int searchCount = 4;
         // 调用 API，注意释放资源
         try (HttpResponse response = HttpRequest.get(PEXELS_API_URL)
                 .header("Authorization", pexelsApiKey)

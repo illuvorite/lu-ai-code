@@ -36,7 +36,7 @@ public class ProjectBuilderNode {
             CodeGenTypeEnum generationType = context.getGenerationType();
             String buildResultDir;
             // Vue 项目类型：使用 VueProjectBuilder 进行构建
-            if (generationType == CodeGenTypeEnum.VUE_PROJECT) {
+            //一定是Vue项目
                 try {
                     // 从 Spring 上下文中获取 VueProjectBuilder 实例
                     VueProjectBuilder vueBuilder = SpringContextUtil.getBean(VueProjectBuilder.class);
@@ -55,11 +55,6 @@ public class ProjectBuilderNode {
                     log.error("Vue 项目构建异常: {}", e.getMessage(), e);
                     buildResultDir = generatedCodeDir; // 异常时返回原路径
                 }
-            } else {
-                // HTML 和 MULTI_FILE 代码生成时已经保存了，直接使用生成的代码目录
-                buildResultDir = generatedCodeDir;
-            }
-
             // 更新状态
             context.setCurrentStep("项目构建");
             context.setBuildResultDir(buildResultDir);
