@@ -2,7 +2,7 @@ package com.lu.luaicode.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.lu.luaicode.ai.tools.FileWriteTool;
+import com.lu.luaicode.ai.tools.*;
 import com.lu.luaicode.exception.BusinessException;
 import com.lu.luaicode.exception.ResultCode;
 import com.lu.luaicode.model.enums.CodeGenTypeEnum;
@@ -44,6 +44,9 @@ public class AiCodeGeneratorServiceFactory {
 
     @Resource
     private ChatHistoryService chatHistoryService;  // 注入 ChatHistoryService 类型的依赖，用于保存对话历史
+
+    @Resource
+    private ToolManager toolManager;  // 注入 ToolManager 类型的依赖，用于管理工具
 
 
 
@@ -98,7 +101,9 @@ public class AiCodeGeneratorServiceFactory {
                         .chatModel(chatModel)  // 设置聊天模型，用于非流式对话
                         .streamingChatModel(reasoningStreamingChatModel)  // 设置流式聊天模型，用于流式对话
                         .chatMemoryProvider(memory ->chatMemory)// 设置对话记忆，保持对话上下文
-                        .tools(new FileWriteTool())
+                        .tools(
+                                toolManager.getAllTools()
+                        )
                         //处理工具幻觉问题
                         .hallucinatedToolNameStrategy(toolExecutionRequest ->
                                 ToolExecutionResultMessage.from(toolExecutionRequest,"Error: there is no tool called"+

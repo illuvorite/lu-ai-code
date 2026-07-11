@@ -1,10 +1,15 @@
 package com.lu.luaicode.ai.tools;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
+import com.lu.luaicode.ai.model.message.ToolExecutedMessage;
 import com.lu.luaicode.constant.AppConstant;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,7 +31,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 5. 提供详细的写入结果反馈
  */
 @Slf4j
-public class FileWriteTool {
+@Component
+public class FileWriteTool extends BaseTool {
 
     // 用于记录每个应用ID的文件写入计数
     // 使用ConcurrentHashMap保证线程安全
@@ -65,5 +71,28 @@ public class FileWriteTool {
             log.error(errorMessage, e);
             return errorMessage;
         }
+    }
+
+    @Override
+    public String getToolName() {
+        return "writeFile";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "写入文件";
+    }
+
+    @Override
+    public String generateToolExecutedResult(JSONObject arguments) {
+        String relativeFilePath = arguments.getStr("relativeFilePath");
+        String suffix = FileUtil.getSuffix(relativeFilePath);
+        String content = arguments.getStr("content");
+        return  String.format("""
+                        [工具调用] %s %s
+                        ```%s
+                        %s
+                        ```
+                        """, getDisplayName(),relativeFilePath, suffix, content);
     }
 }
