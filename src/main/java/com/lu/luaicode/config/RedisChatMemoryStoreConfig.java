@@ -19,6 +19,8 @@ public class RedisChatMemoryStoreConfig {
 
     private int port; // Redis服务器端口
 
+    private String user = "default"; // Redis用户名（Redis 6+ ACL，默认为default）
+
     private String password; // Redis服务器密码
 
     private long ttl; // Redis中数据的生存时间(毫秒)
@@ -34,6 +36,7 @@ public class RedisChatMemoryStoreConfig {
         return RedisChatMemoryStore.builder()
                 .host(host) // 设置主机地址
                 .port(port) // 设置端口
+                .user(user) // 设置用户名（必须有值，否则JedisPooled不会发送AUTH命令）
                 .password(password) // 设置密码
                 .ttl(ttl) // 设置生存时间
                 .build(); // 构建并返回RedisChatMemoryStore实例

@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import com.lu.luaicode.ai.AiCodeGenTypeRoutingService;
 import com.lu.luaicode.constant.AppConstant;
 import com.lu.luaicode.core.AiCodeGeneratorFacade;
 import com.lu.luaicode.core.builder.VueProjectBuilder;
@@ -76,6 +77,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private ScreenshotTaskProducer screenshotTaskProducer;
+
+    @Resource
+    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
+
 
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
@@ -185,7 +190,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Override
     public Long addApp(AppAddRequest appAddRequest, HttpServletRequest request) {
         // 校验 initPrompt 不允许为空
-        ThrowUtils.throwIf(StrUtil.isBlank(appAddRequest.getInitPrompt()), PARAM_ERROR, "initPrompt 不能为空");
+        String initPrompt = appAddRequest.getInitPrompt();
+        ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), PARAM_ERROR, "initPrompt 不能为空");
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
         // 拷贝属性并设置所属用户
@@ -195,7 +201,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         app.setAppName(appAddRequest.getInitPrompt().substring(0, Math.min(appAddRequest.getInitPrompt().length(), 12)));
         app.setUserId(loginUser.getId());
         //暂时设置多文件生成
-        app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
+        CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
+        app.setCodeGenType(codeGenTypeEnum.getValue());
         boolean save = this.save(app);
         ThrowUtils.throwIf(!save, DATA_OPERATION_FAIL, "创建应用失败");
         return app.getId();

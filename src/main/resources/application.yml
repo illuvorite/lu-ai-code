@@ -7,9 +7,10 @@ spring:
   #redis
   data:
     redis:
-      host: localhost
+      host: 192.168.150.101
       port: 6379
-      password:
+      password: dopamine
+      database: 0
       ttl: 3600
   # mysql
   datasource:
